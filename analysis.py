@@ -6,6 +6,7 @@ from database import get_sessions
 SESSIONS_COLUMNS=['id', 'focus_scale', 'duration', 'right_answers', 'total_questions', 'date', 'subject_name']
 MIN_DAILY_MINUTES = 5
 SUMMARY_COLUMNS = ['total_minute', 'total_sessions', 'average_duration_every_sessions', 'average_focus_scale', 'right_answers', 'total_questions', 'accuracy']
+WEEKLY_COLUMNS = ['total_minutes', 'total_sessions', 'average_focus_scale', 'total_active_days']
 
 def get_sessions_dataframe():
     sessions = get_sessions()
@@ -81,6 +82,23 @@ def subject_summary(df):
 
     return summary
 
+def weekly_summary(df):
+    if df.empty:
+        return pd.DataFrame([], columns=WEEKLY_COLUMNS)
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'])
+
+    df['week_start_date'] = df['date'].dt.to_period("W").dt.start_time
+    summary = df.groupby(['week_start_date']).agg(
+        total_minute = ("duration", "sum"),
+        total_sessions = ("id", "count"),
+        average_focus_scale = ("focus_scale", "mean"),
+        total_active_days = ("date", "count")
+    )
+    summary = summary.sort_values('week_start_date', ascending=True)
+    return summary
+
+
 if __name__ == "__main__":
     df = get_sessions_dataframe()
     sample_df = pd.DataFrame(
@@ -93,13 +111,7 @@ if __name__ == "__main__":
     ],
     columns=SESSIONS_COLUMNS,
     )
+    empty_df = pd.DataFrame([], SESSIONS_COLUMNS)
 
-    empty_df = pd.DataFrame([], columns=SESSIONS_COLUMNS)
-    result = subject_summary(empty_df)
-    print(result)
-    print(list(result.columns))
-    print(subject_summary(empty_df)['accuracy'])
-    list(subject_summary(sample_df).columns)
-    list(subject_summary(empty_df).columns)
-
-    
+    print(weekly_summary(df))
+    print(list(weekly_summary(sample_df).columns) == list(weekly_summary(empty_df).columns))
