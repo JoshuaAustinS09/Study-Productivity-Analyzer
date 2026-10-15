@@ -112,4 +112,3 @@ def weekly_summary(df):
 
 if __name__ == "__main__":
     df = get_sessions_dataframe()
-    
