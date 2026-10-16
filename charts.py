@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from analysis import get_sessions_dataframe, weekly_summary, SESSIONS_COLUMNS
 
-
-def plot_minute_per_week(weekly):
+def _empty_figure(weekly):
     if weekly.empty:
         fig, ax = plt.subplots()
-    
+        
         ax.text(0.5, 0.5, 'Belum Ada Data', 
             fontsize=16, 
             fontweight='bold',
@@ -16,8 +15,14 @@ def plot_minute_per_week(weekly):
             ha='center', 
             va='center', 
             transform=ax.transAxes)
-    
+        
         ax.axis('off')
+        
+        return fig
+
+def plot_minute_per_week(weekly):
+    if weekly.empty:
+        fig = _empty_figure(weekly)
     
         return fig
         
@@ -34,25 +39,26 @@ def plot_minute_per_week(weekly):
     return fig
 
 def plot_weekly_overview(weekly):
+    if weekly.empty:
+        fig = _empty_figure(weekly)
+        
+        return fig
+
     fig, (ax_top, ax_bottom) = plt.subplots(nrows=2, ncols=1, sharex=True, constrained_layout=True)
 
     ax_top.bar(weekly.index, weekly["total_minute"], width=4)
     ax_bottom.plot(weekly.index, weekly["total_active_days"], marker="o")
 
     ax_top.set_title("Total durasi belajar per minggu")
-    ax_top.set_xlabel("Minggu (mulai Senin)")
     ax_top.set_ylabel("Total durasi (menit)")
 
     ax_bottom.set_title("Total hari aktif per minggu")
     ax_bottom.set_xlabel("Minggu (mulai Senin)")
     ax_bottom.set_ylabel("Total hari aktif (Hari)")
 
-    ax_top.set_xticks(weekly.index.date)
-    ax_top.set_xticklabels(weekly.index.date)
-
     ax_bottom.set_xticks(weekly.index.date)
     ax_bottom.set_xticklabels(weekly.index.date)
-    ax_bottom.set_ylim(bottom=0)
+    ax_bottom.set_ylim(bottom=0, top=8)
 
     return fig
 
