@@ -4,25 +4,24 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from analysis import get_sessions_dataframe, weekly_summary, SESSIONS_COLUMNS
 
-def _empty_figure(weekly):
-    if weekly.empty:
-        fig, ax = plt.subplots()
+def _empty_figure():
+    fig, ax = plt.subplots()
         
-        ax.text(0.5, 0.5, 'Belum Ada Data', 
-            fontsize=16, 
-            fontweight='bold',
-            color='darkgray', 
-            ha='center', 
-            va='center', 
-            transform=ax.transAxes)
+    ax.text(0.5, 0.5, 'Belum Ada Data', 
+        fontsize=16, 
+        fontweight='bold',
+        color='darkgray', 
+        ha='center', 
+        va='center', 
+        transform=ax.transAxes)
         
-        ax.axis('off')
+    ax.axis('off')
         
-        return fig
+    return fig
 
 def plot_minute_per_week(weekly):
     if weekly.empty:
-        fig = _empty_figure(weekly)
+        fig = _empty_figure()
     
         return fig
         
@@ -40,7 +39,7 @@ def plot_minute_per_week(weekly):
 
 def plot_weekly_overview(weekly):
     if weekly.empty:
-        fig = _empty_figure(weekly)
+        fig = _empty_figure()
         
         return fig
 
@@ -58,7 +57,7 @@ def plot_weekly_overview(weekly):
 
     ax_bottom.set_xticks(weekly.index.date)
     ax_bottom.set_xticklabels(weekly.index.date)
-    ax_bottom.set_ylim(bottom=0, top=8)
+    ax_bottom.set_ylim(bottom=0, top=8) # top=8 karena total hari hanya ada 7
 
     return fig
 
@@ -89,5 +88,9 @@ if __name__ == "__main__":
 
     fig = plot_weekly_overview(weekly_summary(df))
     fig.savefig("weekly_summary.png")
+    fig = plot_weekly_overview(weekly_summary(sample_df))
+    fig.savefig("weekly_summary_sample.png")
+    fig = plot_weekly_overview(weekly_summary(empty_df))
+    fig.savefig("weekly_summary_empty.png")
 
     plt.show()
