@@ -110,20 +110,19 @@ def weekly_summary(df):
     summary = summary.sort_values('week_start_date', ascending=True)
     return summary
 
-def add_weekly_changes(weekly):
-    if weekly.empty:
+def weekly_changes(df):
+    if df.empty:
         return pd.DataFrame([], columns=WEEKLY_CHANGE_COLUMNS)
 
 
-    weekly = weekly.copy()
-    changes = weekly_summary(weekly)
+    changes = weekly_summary(df)
 
     changes["minute_change"] = changes["total_minute"].diff()
     changes["minute_change_pct"] = round(changes["total_minute"].pct_change() * 100, 1)
     changes["session_change"] = changes["total_sessions"].diff()
     changes["active_days_change"] = changes["total_active_days"].diff()
 
-    only_changes = changes[['minute_change', 'minute_change_pct', 'session_change', 'active_days_change']]
+    only_changes = changes[[WEEKLY_CHANGE_COLUMNS]]
 
     return only_changes
 
@@ -146,7 +145,8 @@ if __name__ == "__main__":
     
     empty_df = pd.DataFrame([], columns=SESSIONS_COLUMNS)
 
-    print(add_weekly_changes(df))
-    print(add_weekly_changes(sample_df))
-    print(add_weekly_changes(empty_df))
+    print(weekly_changes(df))
+    print(weekly_changes(sample_df))
+    print(weekly_changes(empty_df))
+    print(list(weekly_changes(sample_df)) == list(weekly_changes(empty_df)))
     
