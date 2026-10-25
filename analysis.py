@@ -7,6 +7,7 @@ SESSIONS_COLUMNS=['id', 'focus_scale', 'duration', 'right_answers', 'total_quest
 MIN_DAILY_MINUTES = 5
 SUMMARY_COLUMNS = ['total_minute', 'total_sessions', 'average_duration_every_sessions', 'average_focus_scale', 'right_answers', 'total_questions', 'accuracy']
 WEEKLY_COLUMNS = ['total_minute', 'total_sessions', 'average_focus_scale', 'total_active_days']
+WEEKLY_CHANGE_COLUMNS = ["minute_change", "minute_change_pct", "session_change", "active_days_change"]
 
 def get_sessions_dataframe():
     sessions = get_sessions()
@@ -109,6 +110,43 @@ def weekly_summary(df):
     summary = summary.sort_values('week_start_date', ascending=True)
     return summary
 
+def weekly_changes(df):
+    if df.empty:
+        return pd.DataFrame([], columns=WEEKLY_CHANGE_COLUMNS)
+
+
+    changes = weekly_summary(df)
+
+    changes["minute_change"] = changes["total_minute"].diff()
+    changes["minute_change_pct"] = round(changes["total_minute"].pct_change() * 100, 1)
+    changes["session_change"] = changes["total_sessions"].diff()
+    changes["active_days_change"] = changes["total_active_days"].diff()
+
+    only_changes = changes[[WEEKLY_CHANGE_COLUMNS]]
+
+    return only_changes
+
 
 if __name__ == "__main__":
     df = get_sessions_dataframe()
+    sample_df = pd.DataFrame(
+    [
+        (1, 8, 60, 15, 20, "2026-10-01", "Fisika"),
+        (2, 6, 40, 9, 10, "2026-10-02", "Fisika"),
+        (3, 7, 30, None, None, "2026-10-03", "Fisika"),
+        (4, 5, 45, None, None, "2026-10-01", "Sejarah"),
+        (5, 9, 25, None, None, "2026-10-04", "Sejarah"),
+        (6, 8, 3, None, None, "2026-10-13", "Fisika"),
+        (6, 8, 3, None, None, "2026-10-14", "Fisika"),
+        (6, 8, 3, None, None, "2026-10-14", "Fisika"),
+    ],
+        columns=SESSIONS_COLUMNS,
+    )
+    
+    empty_df = pd.DataFrame([], columns=SESSIONS_COLUMNS)
+
+    print(weekly_changes(df))
+    print(weekly_changes(sample_df))
+    print(weekly_changes(empty_df))
+    print(list(weekly_changes(sample_df)) == list(weekly_changes(empty_df)))
+    
