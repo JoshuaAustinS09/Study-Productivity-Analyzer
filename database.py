@@ -132,8 +132,8 @@ def get_sessions():
     cursor.execute('''
     SELECT study_sessions.id, study_sessions.focus_scale, study_sessions.duration, 
            study_sessions.right_answers, study_sessions.total_questions, 
-           study_sessions.date, subjects.name
-           FROM study_sessions
+           study_sessions.date, 
+           subjects.name FROM study_sessions
            JOIN subjects ON study_sessions.subject_id = subjects.id ORDER BY study_sessions.date DESC, study_sessions.id DESC
            ''')
     sessions = cursor.fetchall()
@@ -151,6 +151,39 @@ def calculate_duration_minutes(start, end):
     duration = end - start
     return int(duration.total_seconds() // 60)
 
+def set_weekly_targets(subject_id, week_start_date, target_duration):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute('''
+        INSERT INTO study_target_weekly (subject_id, week_start_date, target_duration)
+        VALUES (?, ?, ?)
+        ON CONFLICT (subject_id, week_start_date) DO UPDATE SET target_durations = EXCLUDED.target_durations
+        ''', (subject_id, week_start_date, target_duration))
+    except sqlite3.IntegrityError as e:
+        return False, f"Database error: {e}"
+    finally:
+        conn.commit()
+        conn.close()
+
+    return True, "Target weekly changed successfully"
+
+def get_weekly_targets():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    SELECT study_target_weekly.id, study_target_weekly.week_start_date, study_target_weekly.target_duration
+    study_target_weekly.subject_id FROM study_target_weekly
+    JOIN subjects ON study_target_weekly.subject_id = subject_id ORDER BY study_target_weekly.id DESC
+    ''')
+    sessions = cursor.fetchall()
+
+    conn.close()
+    return sessions
+
+    
 if __name__ == '__main__':
     create_table()
 

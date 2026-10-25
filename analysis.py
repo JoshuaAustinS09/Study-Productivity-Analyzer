@@ -110,7 +110,7 @@ def weekly_summary(df):
     summary = summary.sort_values('week_start_date', ascending=True)
     return summary
 
-def weekly_changes(df):
+def weekly_changes(df): # Celah dihitung apa adanya
     if df.empty:
         return pd.DataFrame([], columns=WEEKLY_CHANGE_COLUMNS)
 
@@ -122,7 +122,7 @@ def weekly_changes(df):
     changes["session_change"] = changes["total_sessions"].diff()
     changes["active_days_change"] = changes["total_active_days"].diff()
 
-    only_changes = changes[[WEEKLY_CHANGE_COLUMNS]]
+    only_changes = changes[WEEKLY_CHANGE_COLUMNS]
 
     return only_changes
 
