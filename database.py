@@ -1,6 +1,6 @@
 # database.py
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 import sqlite3
 DB_NAME = 'study.db'
 

@@ -1,13 +1,15 @@
 # analysis.py
 
 import pandas as pd
-from database import get_sessions
+from database import get_sessions, get_weekly_targets
 
 SESSIONS_COLUMNS=['id', 'focus_scale', 'duration', 'right_answers', 'total_questions', 'date', 'subject_name']
-MIN_DAILY_MINUTES = 5
 SUMMARY_COLUMNS = ['total_minute', 'total_sessions', 'average_duration_every_sessions', 'average_focus_scale', 'right_answers', 'total_questions', 'accuracy']
 WEEKLY_COLUMNS = ['total_minute', 'total_sessions', 'average_focus_scale', 'total_active_days']
 WEEKLY_CHANGE_COLUMNS = ["minute_change", "minute_change_pct", "session_change", "active_days_change"]
+TARGET_COLUMNS = ['id', 'week_start_date', 'target_duration', 'subject_name']
+PROGRESS_COLUMNS = ['week_start_date', 'subject_name','target_duration', 'achieved_duration', 'percentage', 'percentage_capped']
+MIN_DAILY_MINUTES = 5
 
 def get_sessions_dataframe():
     sessions = get_sessions()
@@ -126,6 +128,28 @@ def weekly_changes(df): # Celah dihitung apa adanya
 
     return only_changes
 
+def get_targets_dataframe():
+    targets = get_weekly_targets()
+    df = pd.DataFrame(targets, columns=TARGET_COLUMNS)
+    return df
+
+
+def goal_progress(df):
+    if df.empty:
+        return pd.DataFrame([], columns=PROGRESS_COLUMNS)
+
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'])
+        
+    df['week_start_date'] = df['date'].dt.to_period("W").dt.start_time
+    
+    progress = df.groupby(['week_start_date', 'subject_name']).agg(
+        achieved_duration = ("duration", "sum")
+    )
+    progress = progress.reset_index()
+
+    return progress
+
 
 if __name__ == "__main__":
     df = get_sessions_dataframe()
@@ -144,9 +168,5 @@ if __name__ == "__main__":
     )
     
     empty_df = pd.DataFrame([], columns=SESSIONS_COLUMNS)
-
-    print(weekly_changes(df))
-    print(weekly_changes(sample_df))
-    print(weekly_changes(empty_df))
-    print(list(weekly_changes(sample_df)) == list(weekly_changes(empty_df)))
+    print(goal_progress(sample_df))
     

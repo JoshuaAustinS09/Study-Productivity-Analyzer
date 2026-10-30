@@ -4,6 +4,9 @@ import os
 from datetime import date
 
 import database
+database.DB_NAME = "test_study.db"
+
+from analysis import get_targets_dataframe
 
 TEST_DB = "test_study.db"
 database.DB_NAME = TEST_DB          # semua koneksi sekarang menuju file uji
@@ -96,3 +99,5 @@ else:
     report("7b. nama mapel muncul (bukan angka)", any("Fisika" in row for row in targets))
     for row in targets:
         print("    ", row)
+
+print(get_targets_dataframe())
