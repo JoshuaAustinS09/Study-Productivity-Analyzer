@@ -1,13 +1,16 @@
 # analysis.py
 
 import pandas as pd
-from database import get_sessions
+from database import get_sessions, get_weekly_targets
 
 SESSIONS_COLUMNS=['id', 'focus_scale', 'duration', 'right_answers', 'total_questions', 'date', 'subject_name']
-MIN_DAILY_MINUTES = 5
 SUMMARY_COLUMNS = ['total_minute', 'total_sessions', 'average_duration_every_sessions', 'average_focus_scale', 'right_answers', 'total_questions', 'accuracy']
 WEEKLY_COLUMNS = ['total_minute', 'total_sessions', 'average_focus_scale', 'total_active_days']
 WEEKLY_CHANGE_COLUMNS = ["minute_change", "minute_change_pct", "session_change", "active_days_change"]
+TARGET_COLUMNS = ['id', 'week_start_date', 'target_duration', 'subject_name']
+PROGRESS_COLUMNS = ['week_start_date', 'subject_name','target_duration', 'achieved_duration', 'percentage', 'percentage_capped']
+WEEKLY_SUBJECT_COLUMNS = ['week_start_date', 'subject_name', 'achieved_duration']
+MIN_DAILY_MINUTES = 5
 
 def get_sessions_dataframe():
     sessions = get_sessions()
@@ -110,7 +113,7 @@ def weekly_summary(df):
     summary = summary.sort_values('week_start_date', ascending=True)
     return summary
 
-def weekly_changes(df):
+def weekly_changes(df): # Celah dihitung apa adanya
     if df.empty:
         return pd.DataFrame([], columns=WEEKLY_CHANGE_COLUMNS)
 
@@ -122,10 +125,51 @@ def weekly_changes(df):
     changes["session_change"] = changes["total_sessions"].diff()
     changes["active_days_change"] = changes["total_active_days"].diff()
 
-    only_changes = changes[[WEEKLY_CHANGE_COLUMNS]]
+    only_changes = changes[WEEKLY_CHANGE_COLUMNS]
 
     return only_changes
 
+def get_targets_dataframe():
+    targets = get_weekly_targets()
+    df = pd.DataFrame(targets, columns=TARGET_COLUMNS)
+    return df
+
+
+def weekly_subject_minutes(df):
+    if df.empty:
+        return pd.DataFrame([], columns=WEEKLY_SUBJECT_COLUMNS).astype({'achieved_duration': int})
+
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'])
+        
+    df['week_start_date'] = df['date'].dt.to_period("W").dt.start_time
+    
+    progress = df.groupby(['week_start_date', 'subject_name']).agg(
+        achieved_duration = ("duration", "sum")
+    )
+    progress = progress.reset_index()
+
+    return progress
+
+def goal_progress(sessions_df, targets_df):
+    if sessions_df.empty and targets_df.empty:
+        return pd.DataFrame([], columns=PROGRESS_COLUMNS)
+
+    targets_df = targets_df.copy()
+    targets_df['week_start_date'] = pd.to_datetime(targets_df['week_start_date'])
+    achieved = weekly_subject_minutes(sessions_df)
+
+    merged = targets_df.merge(achieved, how="outer", on=['week_start_date', 'subject_name'])
+    merged['achieved_duration'] = merged['achieved_duration'].fillna(0).astype(int)
+    merged['target_duration'] = pd.to_numeric(merged['target_duration'])
+    merged['percentage'] = round(merged['achieved_duration']/merged['target_duration'] * 100, 1)
+    merged['percentage_capped'] = merged['percentage'].clip(upper=100)
+
+    only_merged = merged[PROGRESS_COLUMNS]
+    only_merged = only_merged.sort_values(['week_start_date', 'subject_name'])
+    only_merged = only_merged.reset_index(drop=True)
+
+    return only_merged
 
 if __name__ == "__main__":
     df = get_sessions_dataframe()
@@ -145,8 +189,49 @@ if __name__ == "__main__":
     
     empty_df = pd.DataFrame([], columns=SESSIONS_COLUMNS)
 
-    print(weekly_changes(df))
-    print(weekly_changes(sample_df))
-    print(weekly_changes(empty_df))
-    print(list(weekly_changes(sample_df)) == list(weekly_changes(empty_df)))
+    mini_sessions = pd.DataFrame(
+    [
+        (1, 7, 40, None, None, "2026-10-13", "Fisika"),
+        (2, 7, 80, None, None, "2026-10-14", "Fisika"),
+        (3, 7, 30, None, None, "2026-10-13", "Sejarah"),
+    ],
+    columns=SESSIONS_COLUMNS,
+    )
+
+    mini_targets = pd.DataFrame(
+        [
+            (1, "2026-10-12", 100, "Fisika"),
+            (2, "2026-10-12", 60, "Kimia"),
+        ],
+        columns=TARGET_COLUMNS,
+    )
+    mini_targets_new = pd.DataFrame(
+            [
+                (1, "2026-09-28", 60, "Fisika"),
+                (2, "2026-10-05", 60, "Fisika"),
+            ],
+            columns=TARGET_COLUMNS,
+        )
+    empty_targets = pd.DataFrame([], columns=TARGET_COLUMNS)
+
+    cases = {
+        "1. keduanya kosong": (empty_df, empty_targets),
+        "2. hanya sesi kosong": (empty_df, mini_targets),
+        "3. hanya target kosong": (mini_sessions, empty_targets),
+    }
+
+    for name, (s, t) in cases.items():
+        print("===", name)
+        try:
+            result = goal_progress(s, t)
+            print(result)
+            print(result.dtypes)
+        except Exception as e:
+            print("ERROR:", type(e).__name__, e)
+    empty_result = goal_progress(empty_df, empty_targets)
+    filled_result = goal_progress(mini_sessions, mini_targets)
+
     
+    print(list(empty_result.columns) == PROGRESS_COLUMNS)
+    print(list(filled_result.columns) == PROGRESS_COLUMNS)
+    print(goal_progress(df, mini_targets_new))
