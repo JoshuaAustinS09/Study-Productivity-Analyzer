@@ -205,6 +205,13 @@ if __name__ == "__main__":
         ],
         columns=TARGET_COLUMNS,
     )
+    mini_targets_new = pd.DataFrame(
+            [
+                (1, "2026-09-28", 60, "Fisika"),
+                (2, "2026-10-05", 60, "Fisika"),
+            ],
+            columns=TARGET_COLUMNS,
+        )
     empty_targets = pd.DataFrame([], columns=TARGET_COLUMNS)
 
     cases = {
@@ -221,12 +228,10 @@ if __name__ == "__main__":
             print(result.dtypes)
         except Exception as e:
             print("ERROR:", type(e).__name__, e)
-    s = pd.Series([120.0, 0.0, float("nan")])
     empty_result = goal_progress(empty_df, empty_targets)
     filled_result = goal_progress(mini_sessions, mini_targets)
 
     
-    print(goal_progress(mini_sessions, mini_targets))
-    print(mini_targets.dtypes)
     print(list(empty_result.columns) == PROGRESS_COLUMNS)
     print(list(filled_result.columns) == PROGRESS_COLUMNS)
+    print(goal_progress(df, mini_targets_new))
