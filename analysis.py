@@ -137,7 +137,7 @@ def get_targets_dataframe():
 
 def weekly_subject_minutes(df):
     if df.empty:
-        return pd.DataFrame([], columns=WEEKLY_SUBJECT_COLUMNS).astype(int)
+        return pd.DataFrame([], columns=WEEKLY_SUBJECT_COLUMNS).astype({'achieved_duration': int})
 
     df = df.copy()
     df['date'] = pd.to_datetime(df['date'])
@@ -160,9 +160,12 @@ def goal_progress(sessions_df, targets_df):
     achieved = weekly_subject_minutes(sessions_df)
 
     merged = targets_df.merge(achieved, how="outer", on=['week_start_date', 'subject_name'])
-
     merged['achieved_duration'] = merged['achieved_duration'].fillna(0).astype(int)
-    only_merged = merged[['week_start_date', 'target_duration', 'subject_name', 'achieved_duration']]
+    merged['target_duration'] = pd.to_numeric(merged['target_duration'])
+    merged['percentage'] = round(merged['achieved_duration']/merged['target_duration'] * 100, 1)
+    merged['percentage_capped'] = merged['percentage'].clip(upper=100)
+
+    only_merged = merged[PROGRESS_COLUMNS]
     only_merged = only_merged.sort_values(['week_start_date', 'subject_name'])
     only_merged = only_merged.reset_index(drop=True)
 
@@ -218,5 +221,12 @@ if __name__ == "__main__":
             print(result.dtypes)
         except Exception as e:
             print("ERROR:", type(e).__name__, e)
+    s = pd.Series([120.0, 0.0, float("nan")])
+    empty_result = goal_progress(empty_df, empty_targets)
+    filled_result = goal_progress(mini_sessions, mini_targets)
+
+    
     print(goal_progress(mini_sessions, mini_targets))
     print(mini_targets.dtypes)
+    print(list(empty_result.columns) == PROGRESS_COLUMNS)
+    print(list(filled_result.columns) == PROGRESS_COLUMNS)
